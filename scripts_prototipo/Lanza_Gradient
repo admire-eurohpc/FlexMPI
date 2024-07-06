@@ -1,0 +1,5 @@
+cd /home/admin/shared/FlexMPI/scripts
+export LD_LIBRARY_PATH=/LIBS/glpk/lib/:/home/admin/shared/FlexMPI/lib/:/LIBS/mpich/lib/:/LIBS/papi/lib/:$LD_LIBRARY_PATH
+export CLARISSE_COUPLENESS=dynamic
+export CLARISSE_PORT_PATH=/home/admin/shared/FlexMPI/examples/examples1
+./Lanza_CG.sh 2 7668 7669 1 2000 0 1 1 0.020000 5500

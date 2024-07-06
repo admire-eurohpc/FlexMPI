@@ -1,0 +1,70 @@
+<?xml version="1.0" ?>
+<parameters
+
+	NumGraphs 			= "2"
+
+	IdGraphWorkers 		= "1"
+	WorkersMinAge 		= "20"
+	WorkersMaxAge 		= "64"
+	PercentageWorkers = "0.4447"
+	WorkersMinSize 		= "20"
+	WorkersMaxSize 		= "1000"
+	WorkersMale = "0.4909"
+	WorkersSigmaAge 		= "36"
+	WorkersMuAge 		= "0"
+
+    CompaniesOnSaturday = "0.35"
+
+	IdGraphStudents 		= "2"
+	StudentsMinAge 		= "0"
+	StudentsMaxAge 		= "19"
+	PercentageStudents = "0.1596"
+	StudentsMinSize 		= "40"
+	StudentsMaxSize 		= "200"
+	StudentsMale = "0.5159"
+	StudentsSigmaAge 		= "10"
+	StudentsMuAge 		= "0"
+
+	IdGraphElderly 		= "1"
+	ElderlyMinAge 		= "65"
+	ElderlyMaxAge 		= "100"
+	PercentageElderly = "0.2242"
+	ElderlyMinSize 		= "25"
+	ElderlyMaxSize 		= "50"
+	ElderlyMale = "0.3924"
+	ElderlySigmaAge 		= "2.3"
+	ElderlyMuAge 		= "65"
+
+	IdGraphUnemployed 		= "1"
+	UnemployedMinAge 		= "20"
+	UnemployedMaxAge 		= "64"
+	PercentageUnemployed = "0.1715"
+	UnemployedMinSize 		= "1"
+	UnemployedMaxSize 		= "10"
+	UnemployedMale = "0.1146"
+	UnemployedSigmaAge 		= "36"
+	UnemployedMuAge 		= "0"
+
+	Threshold 		= "0.7"
+	WeakConnection 		= "0.00"
+	StrongConnection 		= "0.0064"
+	PopSize = "351629"
+	RelationshipAvgn 		= "60"
+
+	RaceWhite 		= "0.4520"
+	RaceBlack 		= "0.2702"
+	RaceAmindian 		= "0.0105"
+	RaceAsian 		= "0.1037"
+	RacePacific 		= "0.0019"
+	RaceOther 		= "0.1617"
+
+	Household_1 = "0.0706"
+	Household_2 = "0.1858"
+	Household_3 = "0.2539"
+	Household_4 = "0.3139"
+	Household_5 = "0.1758"
+
+	SourceGraph 		= "1"
+	MuGraph 		= "25"
+	SigmaGraph 		= "1"
+/>

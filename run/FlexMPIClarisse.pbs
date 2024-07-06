@@ -1,0 +1,27 @@
+#!/bin/sh
+
+#PBS -N FlexMPI
+#PBS -l nodes=2:ppn=5
+#PBS -l walltime=0:05:00
+#PBS -j oe
+#PBS -q shared
+
+
+cd $PBS_O_WORKDIR
+echo "Nodes assigned"
+echo "-------"
+cat $PBS_NODEFILE
+
+
+./ExecutionScript.sh  $PBS_NODEFILE 
+echo "-------"
+
+
+cd ../controller
+./workloadgen  ../run/nodefile1.dat ../run/appfile.dat
+echo "-------"
+
+
+
+./controller > ./logs/controller
+

@@ -1,0 +1,197 @@
+#!/usr/bin/env python3
+
+import sys, getopt, os, subprocess, shutil, time
+
+def parse_nodelist(nodelist):
+   result_list=""
+   aux_nodelist = nodelist
+   while aux_nodelist != "":
+      ind = 0
+      car = ""
+      while (car != ",") and (car is not None):
+         (ind,car) = next(((i,ch) for i, ch  in enumerate(aux_nodelist[ind:],start=ind) if ch in {",","["}),(None,None))
+         if car == "[":
+           (ind,car) = next(((i,ch) for i, ch  in enumerate(aux_nodelist[ind:],start=ind) if ch in "]"),(None,None))
+      if ind is None:
+         raw_node = aux_nodelist
+         aux_nodelist = ""
+      else:
+         raw_node = aux_nodelist[:ind]
+         aux_nodelist = aux_nodelist[ind+1:]
+        
+      parts_node = raw_node.split("[")
+      if len(parts_node) == 1:
+         result_list += raw_node + ","
+      elif len(parts_node) == 2:
+         parts2_node = parts_node[1].split("]")
+         parts_comma = parts2_node[0].split(",")
+         for num_set in parts_comma:
+            if num_set.find("-") == -1:
+               result_list += parts_node[0] + num_set + parts2_node[1] + ","
+            else:
+               num_borders = num_set.split("-")
+               if len(num_borders) > 2:
+                  sys.exit("nodelist: syntax error.")
+               for node_num in range(int(num_borders[0]),  int(num_borders[1]) + 1):
+                  result_list += parts_node[0] + str(node_num).zfill(len(num_borders[0])) + parts2_node[1] + ","
+      else: #(len(parts_node) > 1)
+         sys.exit("nodelist: syntax error.")
+     
+   if result_list[-1:] == ",":
+      result_list = result_list[:-1]
+
+   return result_list
+
+
+def parse_taskpernode(taskpernode):
+   result_list=""
+   parts_tasks = taskpernode.split(",")
+   for task_set in parts_tasks:
+      task_aux = task_set.split("(x")
+      if len(task_aux) == 1:
+         result_list += task_set + ","
+      elif len(task_aux) == 2:
+         num = int(task_aux[1][:-1])
+         for iter in range(num):
+            result_list += task_aux[0] + ","
+      else: #len(task_set) > 2:
+         sys.exit("taskpernode: syntax error.")
+
+   if result_list[-1:] == ",":
+      result_list = result_list[:-1]
+
+   return result_list
+
+def check_hostlist(hostlist):
+   result_list=""
+   parts_tasks = hostlist.split(",")
+   for task_set in parts_tasks:
+      task_aux = task_set.split(":")
+      if len(task_aux) != 2:
+         return False
+      elif task_aux[1].isnumeric() == False:
+         return False
+   return True
+
+def get_hostlist(nodelist, taskpernode, is_excl_node):
+
+   nodelist = parse_nodelist(nodelist)
+   nodelist = nodelist.split(",")
+
+   if (is_excl_node==False):
+      taskpernode = parse_taskpernode(taskpernode)
+      taskpernode = taskpernode.split(",")
+   else:
+      taskpernode=[]
+      taskpernode.extend(['1']*len(nodelist))   
+
+   hostlist = [i+":"+j+"," for i,j in list(zip(nodelist,taskpernode))]
+   hostlist = ''.join(hostlist)[:-1]
+   return hostlist
+
+def usage():
+   print (sys.argv[0] + ' [--host=<hostlist>] [--dynamic|--starstop] [--excl-node] [--ss-file=<malle_file>] [--ss-script=<script>] prog <prog_param> ...', flush=True)
+   sys.exit(1)
+
+def parse_args(argv):
+   mode = '' #default normal
+   hostlist = ''
+   ss_file = ''
+   ss_script = ''
+   is_excl_node = False
+   try:
+      opts, args = getopt.getopt(argv,'',["host=","dynamic","excl-node","startstop", "ss-file=", "ss-script="])
+   except getopt.GetoptError:
+      usage()
+   for opt, arg in opts:
+      if opt in ("--host"):
+         if check_hostlist(arg) == False:
+            print ('ERROR: ' + arg + ' is not a valid list of hosts', flush=True)
+            sys.exit(2)
+         hostlist = arg
+      elif opt in ("--dynamic"):
+         mode = 'dynamic'
+      elif opt in ("--excl-node"):
+         is_excl_node = True
+      elif opt in ("--startstop"):
+         mode = 'startstop'
+      elif opt in ("--ss-file"):
+         ss_file = arg
+      elif opt in ("--ss-script"):
+         ss_script = arg
+
+   return args, hostlist, mode, ss_file, ss_script, is_excl_node
+
+def get_slurm_vars():
+   try:
+      nodelist = os.environ['SLURM_JOB_NODELIST']
+      cpuspernode = os.environ['SLURM_JOB_CPUS_PER_NODE']
+   except KeyError:
+      print ('ERROR: SLURM environment is not set', flush=True)
+      sys.exit(2)
+   return nodelist, cpuspernode
+
+def normal_exec(args, hostlist):
+   command = ["mpiexec", "-genvall", "-launcher", "ssh", "-hosts="+hostlist] + args
+   print (command, flush=True)
+   ret = subprocess.run(command)
+   return
+
+def dynamic_exec(args, hostlist):
+   hosts = hostlist.split(",",1)
+   opt_extra_nodes=[]
+   if (len(hosts)>1):
+       opt_extra_nodes = ['-addhostlist', ','.join(hosts[1:])]
+
+   command = ["mpiexec", "-genvall", "-launcher", "ssh", "-hosts="+hosts[0]] + args + opt_extra_nodes
+   print (command, flush=True)
+   ret = subprocess.run(command)
+   return
+
+def startstop_exec(args, hostlist, ss_file, ss_script):
+
+   # exec start script
+   if os.path.isfile(ss_script):
+      command = [ss_script, "--start"]
+      ret = subprocess.run(command)
+
+   # set config file to start
+   command = ["mpiexec", "-genvall", "-launcher", "ssh", "-hosts="+hostlist] + args + ["-startstop"]
+   print (command, flush=True)
+   ret = subprocess.run(command)
+   if os.path.isfile(ss_file):
+       print (ss_file + " exists", flush=True)
+   print ("ret.returncode = " + str(ret.returncode), flush=True)
+   count=0
+   #while ret.returncode == 2 and os.path.isfile(ss_file) and count<2:
+   while ret.returncode == 2 and os.path.isfile(ss_file):
+      #get hostlist from FlexMPI file
+      hostlist = open(ss_file, 'r').read().rstrip('\n')
+      
+      # exec restart script
+      if os.path.isfile(ss_script):
+         command = [ss_script, "--restart"]
+         ret = subprocess.run(command)
+
+      command = ["mpiexec", "-genvall", "-launcher", "ssh", "-hosts="+hostlist] + args + ["-startstop", "-mode-restart"]
+      print (command, flush=True)
+      ret = subprocess.run(command)
+      count=count+1
+   return
+   
+if __name__ == "__main__":
+   args, hostlist, mode, ss_file, ss_script, is_excl_node = parse_args(sys.argv[1:])
+   if ss_file == '':
+       ss_file='/tmp/nek_malleability.res'
+
+   if  not hostlist:
+       nodelist, cpuspernode = get_slurm_vars()
+       hostlist = get_hostlist(nodelist, cpuspernode, is_excl_node)
+
+   if  mode == 'dynamic':
+      dynamic_exec(args, hostlist)
+   elif  mode == 'startstop':
+      startstop_exec(args, hostlist, ss_file, ss_script)
+   else:
+      normal_exec(args, hostlist)
+
